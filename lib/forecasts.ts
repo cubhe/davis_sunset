@@ -110,7 +110,7 @@ function parseForecast(path: string, raw: string): Forecast | null {
   };
 }
 
-const localForecasts = Object.entries(markdownFiles)
+export const localForecasts = Object.entries(markdownFiles)
   .map(([path, raw]) => parseForecast(path, raw))
   .filter((forecast): forecast is Forecast => forecast !== null)
   .sort((a, b) => b.date.localeCompare(a.date));

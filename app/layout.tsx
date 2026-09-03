@@ -22,15 +22,15 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'zh_CN',
     images: [{
-      url: 'https://raw.githubusercontent.com/cubhe/davis_sunset/main/public/davis-fields-sunset.jpg',
-      alt: '夕阳照亮 UC Davis 西侧田野',
+      url: 'https://raw.githubusercontent.com/cubhe/davis_sunset/main/public/davis-sunset-atmosphere.png',
+      alt: 'Davis 平原与卷云晚霞插画',
     }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Davis 晚霞｜今晚值得追吗？',
     description: '每天一份 Davis 晚霞指数、日落时间、云层判断与观赏建议。',
-    images: ['https://raw.githubusercontent.com/cubhe/davis_sunset/main/public/davis-fields-sunset.jpg'],
+    images: ['https://raw.githubusercontent.com/cubhe/davis_sunset/main/public/davis-sunset-atmosphere.png'],
   },
 };
 

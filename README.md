@@ -54,12 +54,14 @@
 
 ## 站点部分
 
-站点使用 vinext + React 19 + Tailwind 4，部署到 Cloudflare Workers。页面会直接读取 GitHub 上的 `reports/*.md`（约每 5 分钟刷新），按日期倒序排列，并把最新一天显示在首页；网络异常时回退到随站点打包的记录。Claude 每天继续新增报告即可，不需要改网页代码或重新部署。
+站点使用 React 19 + Tailwind 4，并通过 GitHub Actions 自动部署到 [GitHub Pages](https://cubhe.github.io/davis_sunset/)。每次 Claude 向 `main` 分支新增 `reports/*.md`，Actions 都会重新生成静态页面，把最新日期放到首页，旧播报自动进入存档，不需要手动改网页代码。
+
+首页采用固定天空背景和滚动驱动的日落动画：向下滑动时太阳落向地平线，天空逐渐从日光过渡为晚霞；系统开启“减少动态效果”时会自动显示静态版本。
 
 ```bash
 npm install
 npm run dev
-npm run build && npm start
+npm run build:pages
 ```
 
-要求 Node ≥ 22.13。
+`npm run dev` 用于本地预览完整站点；`npm run build:pages` 生成 GitHub Pages 使用的 `pages-dist/`。要求 Node ≥ 22.13。
