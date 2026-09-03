@@ -53,6 +53,45 @@ https://air-quality-api.open-meteo.com/v1/air-quality?latitude=38.5449&longitude
 
 分数低于 4 分就写得更短，一两句话说明今晚不值得出门即可，不用铺开整个表。
 
+## 存档并推送到 GitHub（在聊天里输出播报之后再做）
+
+仓库：`E:\OneDrive - University of California, Davis\PhD\Projects\davis-sunset-index`（路径有空格，命令里一律加引号）
+
+1. 把播报**逐字**写进 `reports/YYYY-MM-DD.md`（用当天 Davis 本地日期），格式对齐已有文件：
+
+```markdown
+---
+date: 2026-09-02
+location: Davis, CA
+sunset: "19:35"
+sunset_azimuth: 279.4
+score: 5
+source: claude-code scheduled task `davis-sunset-index`
+---
+
+# Davis 晚霞指数 · 2026-09-02
+
+> 由 Claude Code 定时任务 `davis-sunset-index` 自动生成。数据源：open-meteo forecast / air-quality API（ECMWF / GFS / ICON 三模式交叉验证）。
+
+## 18:33 定时播报
+
+<播报正文，与聊天里输出的完全一致>
+```
+
+置信度低的时候在 frontmatter 里加一行 `confidence: low`。
+
+2. 在 `README.md` 的「播报存档」表**最上面**插一行：`| [YYYY-MM-DD](reports/YYYY-MM-DD.md) | 分数 | 日落 | 一句话 |`。
+
+3. commit + push：
+
+```bash
+cd "E:/OneDrive - University of California, Davis/PhD/Projects/davis-sunset-index" && git add -A && git commit -q -m "Sunset index YYYY-MM-DD: N/10" && git push -q origin main
+```
+
+commit message 结尾加一行 `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`。
+
+**如果 push 失败**（网络、凭据、冲突）：不要重试超过一次，也不要动 `--force`。保留本地 commit，在聊天末尾用一行说明失败原因即可——播报本身已经发出去了，推送是附加动作。若是冲突，先 `git pull --rebase` 再推一次。
+
 ## 季节性提醒（重要）
 
 本任务固定 18:30 触发。先检查今天的日落时间：**如果日落已经过了、或距离现在不足 40 分钟**，说明季节已经转换、这个触发时间不再合适。此时不要照常输出预报，而是明确提示用户：「今天日落 HH:MM，18:30 的播报时间已经太晚了，建议把这个每日任务改到 15:30 —— 跟我说一声就行。」然后简短给出明天傍晚的展望即可。
