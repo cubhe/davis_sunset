@@ -112,7 +112,8 @@ export function SunsetPage({ forecasts }: { forecasts: Forecast[] }) {
       </section>
 
       <div className="content-shell">
-        <section className="summary" id="details" aria-labelledby="summary-title">
+        <div className="analysis-zone">
+          <section className="summary" id="details" aria-labelledby="summary-title">
           <div className="section-heading" data-reveal>
             <p className="kicker">Tonight at a glance</p>
             <h2 id="summary-title">今晚的关键判断</h2>
@@ -133,9 +134,9 @@ export function SunsetPage({ forecasts }: { forecasts: Forecast[] }) {
               <div><span>首选方向</span><strong>先看西边，也要回头</strong></div>
             </article>
           </div>
-        </section>
+          </section>
 
-        <section className="factors-section" aria-labelledby="factors-title">
+          <section className="factors-section" aria-labelledby="factors-title">
           <div className="section-label" data-reveal>
             <div>
               <p className="kicker">Why this score</p>
@@ -162,7 +163,8 @@ export function SunsetPage({ forecasts }: { forecasts: Forecast[] }) {
               ))}
             </tbody>
           </table>
-        </section>
+          </section>
+        </div>
 
         <section className="plan-section" aria-labelledby="plan-title">
           <div className="plan-intro" data-reveal>
