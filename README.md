@@ -45,7 +45,23 @@
 ```
 ├── README.md      本文件，含全部播报索引
 ├── METHOD.md      定时任务的完整 prompt（评分标准、API 调用、判读要点）
-└── reports/       一天一个 md，frontmatter 记录 date / sunset / azimuth / score
+├── reports/       一天一个 md，frontmatter 记录 date / sunset / azimuth / score
+│
+└── app/ components/ lib/ hooks/ public/    展示站点（OpenAI Sites 脚手架）
 ```
 
 播报正文由模型生成，历史部分是从 Claude Code 的会话记录里逐字提取的，未作改写。
+
+## 站点部分
+
+`app/` 以下是 OpenAI Sites 生成的脚手架：vinext（Vite 版 Next）+ React 19 + shadcn/base-ui + Tailwind 4，`wrangler` 部署到 Cloudflare Workers。
+
+**目前还是原始模板**——`app/page.tsx` 是灰色骨架占位图，`layout.tsx` 里标题还是 `Untitled site`，没有接 `reports/` 的数据。
+
+```bash
+npm install   # 仓库里没有 lockfile，第一次装会解析出新版本
+npm run dev
+npm run build && npm start   # 本地跑 workers runtime
+```
+
+要求 Node ≥ 22.13。

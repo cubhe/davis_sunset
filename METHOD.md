@@ -55,7 +55,7 @@ https://air-quality-api.open-meteo.com/v1/air-quality?latitude=38.5449&longitude
 
 ## 存档并推送到 GitHub（在聊天里输出播报之后再做）
 
-仓库：`E:\OneDrive - University of California, Davis\PhD\Projects\davis-sunset-index`（路径有空格，命令里一律加引号）
+仓库：`E:\OneDrive - University of California, Davis\PhD\Projects\davis_sunset`（路径有空格，命令里一律加引号）
 
 1. 把播报**逐字**写进 `reports/YYYY-MM-DD.md`（用当天 Davis 本地日期），格式对齐已有文件：
 
@@ -85,7 +85,7 @@ source: claude-code scheduled task `davis-sunset-index`
 3. commit + push：
 
 ```bash
-cd "E:/OneDrive - University of California, Davis/PhD/Projects/davis-sunset-index" && git add -A && git commit -q -m "Sunset index YYYY-MM-DD: N/10" && git push -q origin main
+cd "E:/OneDrive - University of California, Davis/PhD/Projects/davis_sunset" && git add -A && git commit -q -m "Sunset index YYYY-MM-DD: N/10" && git push -q origin main
 ```
 
 commit message 结尾加一行 `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`。
