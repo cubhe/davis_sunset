@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { ScrollSunset } from '@/components/scroll-sunset';
+import { StarField } from '@/components/star-field';
 import type { Forecast } from '@/lib/forecasts';
 import { scoreMood } from '@/lib/forecasts';
 
@@ -48,6 +49,7 @@ export function SunsetPage({ forecasts }: { forecasts: Forecast[] }) {
   }
 
   const [year, month, day] = forecast.date.split('-');
+  const weekday = forecast.displayDate.replace(/^\d+月\d+日/, '').trim();
   const assetBase = import.meta.env.BASE_URL || '/';
 
   return (
@@ -58,6 +60,9 @@ export function SunsetPage({ forecasts }: { forecasts: Forecast[] }) {
         <div className="daylight-wash" />
         <div className="afterglow" />
         <div className="sun-orb" />
+        <div className="night-veil" />
+        <StarField />
+        <div className="horizon-glow" />
         <div className="horizon-haze" />
       </div>
 
@@ -74,7 +79,7 @@ export function SunsetPage({ forecasts }: { forecasts: Forecast[] }) {
       </header>
 
       <section className="hero" id="today" data-sunset-hero>
-        <div className="hero-stage">
+        <div className="hero-stage" data-sunset-stage>
           <div className="hero-shade" />
           <div className="hero-content">
             <div className="eyebrow">
@@ -83,26 +88,26 @@ export function SunsetPage({ forecasts }: { forecasts: Forecast[] }) {
             </div>
 
             <div className="hero-grid">
-              <div className="date-lockup" aria-label={`${year}年${month}月${day}日`}>
-                <span className="date-month">{month}月</span>
-                <strong>{day}</strong>
-                <span className="date-year">{year} · {forecast.displayDate.replace(/^\d+月\d+日/, '')}</span>
-              </div>
-
               <div className="hero-copy">
+                <p className="date-line" aria-label={`${year}年${month}月${day}日`}>
+                  <span>{year}</span><i /><span>{month}</span><i /><span>{day}</span>
+                  <em>{weekday}</em>
+                </p>
                 <p className="kicker">今晚值得追吗？</p>
                 <h1>{forecast.verdict}</h1>
                 <div className="sun-meta" aria-label="日落信息">
                   <span><Clock3 size={17} /> 日落 <strong>{forecast.sunset}</strong></span>
-                  <span><Compass size={17} /> 方位 <strong>{forecast.azimuth}</strong></span>
-                  {forecast.directionNote && <span className="direction-note">{forecast.directionNote}</span>}
+                  <span><Compass size={17} /> 方位 <strong>{forecast.azimuth}</strong>{forecast.directionNote && <small>{forecast.directionNote}</small>}</span>
                 </div>
               </div>
 
-              <div className="score-card" aria-label={`晚霞指数 ${forecast.score} 分，满分 10 分`}>
-                <span className="score-label">晚霞指数</span>
-                <div><strong>{forecast.score}</strong><span>/10</span></div>
-                <p><Sparkles size={14} /> {scoreMood(forecast.score)}</p>
+              <div className="score-lockup" aria-label={`晚霞指数 ${forecast.score} 分，满分 10 分`}>
+                <span className="score-label">晚霞指数<b>Sunset Index</b></span>
+                <div className="score-figure"><strong>{forecast.score}</strong><span>/10</span></div>
+                <div className="score-meter" aria-hidden="true">
+                  {Array.from({ length: 10 }, (_, i) => <i key={i} className={i < Math.round(forecast.score) ? 'lit' : ''} />)}
+                </div>
+                <p className="score-mood"><Sparkles size={15} /> {scoreMood(forecast.score)}</p>
               </div>
             </div>
 
@@ -112,10 +117,13 @@ export function SunsetPage({ forecasts }: { forecasts: Forecast[] }) {
       </section>
 
       <div className="content-shell">
-        <div className="analysis-zone">
+        <div className="analysis-zone sheet">
           <section className="summary" id="details" aria-labelledby="summary-title">
           <div className="section-heading" data-reveal>
-            <p className="kicker">Tonight at a glance</p>
+            <div className="section-aside">
+              <p className="kicker">Tonight at a glance</p>
+              <span className="aside-rule" />
+            </div>
             <h2 id="summary-title">今晚的关键判断</h2>
             <p><Emphasis text={forecast.judgment} /></p>
           </div>
@@ -191,7 +199,7 @@ export function SunsetPage({ forecasts }: { forecasts: Forecast[] }) {
           </div>
         </section>
 
-        <section className="archive-section" id="archive" aria-labelledby="archive-title">
+        <section className="archive-section sheet" id="archive" aria-labelledby="archive-title">
           <div className="archive-heading" data-reveal>
             <div><p className="kicker">Archive</p><h2 id="archive-title">往日晚霞</h2></div>
             <span>{forecasts.length} 份判断</span>

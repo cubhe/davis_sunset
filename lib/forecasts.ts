@@ -64,9 +64,10 @@ function parseTable(source: string): Factor[] {
   return source
     .split('\n')
     .filter((line) => line.trim().startsWith('|'))
-    .map((line) => line.split('|').slice(1, -1).map(plain))
+    .map((line) => line.split('|').slice(1, -1))
     .filter((cells) => cells.length >= 3)
-    .filter((cells) => !cells.every((cell) => /^:?-{3,}:?$/.test(cell)))
+    .filter((cells) => !cells.every((cell) => /^:?-{3,}:?$/.test(cell.trim())))
+    .map((cells) => cells.map(plain))
     .filter((cells) => !/因子/.test(cells[0]))
     .map(([name, value, rating]) => ({ name, value, rating }));
 }
