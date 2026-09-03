@@ -34,6 +34,14 @@ https://air-quality-api.open-meteo.com/v1/air-quality?latitude=38.5449&longitude
 **5. 多模式交叉验证**
 对 Davis 点分别用 `models=ecmwf_ifs025`、`gfs_seamless`、`icon_seamless` 查日落窗口的三层云量。三家一致 → 高置信度；分歧大 → 在结论里明确降低置信度。
 
+**陷阱：低云分歧往往是假分歧。** 若 GFS 报低云 80–100% 而 ECMWF/ICON 报低云≈0 且中云 70–80%，多半不是预报分歧，而是分类口径不同——GFS 的低云诊断上界到 680hPa，会把 3 km 的中云盖算进低云。**不要直接按「有低云带 → ≤3 分」一票否决**，先加查低层湿度剖面：
+
+```
+hourly=relative_humidity_1000hPa,relative_humidity_925hPa,relative_humidity_850hPa,relative_humidity_700hPa,temperature_2m,dew_point_2m
+```
+
+判读：只有 700hPa 饱和、而 1000/925hPa 只有 70–85%、地面露点差 ≥5°C → **不可能有海雾层云**，那是一层 3 km 的中云盖，按「中云画布 + 下方干」加分（参考 2026-08-28、09-03）。反过来，1000/925hPa 也接近饱和、露点差 <2°C → 是真的海雾/层云，一票否决成立。
+
 ## 评分标准（0–10）
 
 - **西侧通道（权重最高）**：Davis 及 100 km 上游的低云+中云 ≈ 0 → 大加分；有低云带 → 一票否决式扣分（≤3 分）。
