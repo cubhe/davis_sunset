@@ -1,0 +1,58 @@
+---
+name: davis-sunset-index
+description: 每天傍晚推送 Davis 当晚的晚霞指数（0–10 分）、峰值时间窗和观测点建议
+---
+
+生成今晚 Davis, CA 的「晚霞指数」播报，用中文输出，简洁（正文控制在 150–250 字 + 一个小表格）。
+
+坐标：Davis, CA = 38.5449N, -121.7405W。用 `Bash` + `curl` 调 open-meteo 免费 API（无需 key）。注意：本机 `python`/`python3` 是 Microsoft Store 存根，会静默退出，**解析 JSON 一律用 `py`**。
+
+## 步骤
+
+**1. 取当天日落时间和主数据**
+```
+https://api.open-meteo.com/v1/forecast?latitude=38.5449&longitude=-121.7405&hourly=cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,visibility,wind_speed_10m&daily=sunset&timezone=America%2FLos_Angeles&forecast_days=1
+```
+记下 `daily.sunset`。关注日落前 1 小时到日落后 1 小时的逐小时数据。
+
+**2. 取高层湿度（判断卷云厚薄，最关键的一步）**
+同一 endpoint，加 `hourly=relative_humidity_200hPa,relative_humidity_250hPa,relative_humidity_300hPa,relative_humidity_400hPa,relative_humidity_500hPa,relative_humidity_700hPa,precipitation`，用 `start_hour`/`end_hour` 框住日落窗口。
+
+**3. 取气溶胶**
+```
+https://air-quality-api.open-meteo.com/v1/air-quality?latitude=38.5449&longitude=-121.7405&hourly=pm2_5,aerosol_optical_depth,dust,us_aqi&timezone=America%2FLos_Angeles&forecast_days=1
+```
+
+**4. 查上游（西侧）进光通道 —— 这是本方法的核心，不能省**
+先算今天的日落方位角：`cos(A) = sin(δ)/cos(φ)`，φ=38.55°，δ=太阳赤纬（用当天日期估算，夏至 +23.44°、冬至 −23.44°、春秋分 0°），日落方位 = 360° − A。（夏天约 300°，冬天约 240°。）
+沿该方位从 Davis 向外取 3 个点，距离 100 / 220 / 350 km（1° 纬度=111 km，1° 经度=111·cos(lat) km），一次性用逗号分隔的 latitude/longitude 批量查 `cloud_cover_low,cloud_cover_mid,cloud_cover_high`。
+判读要点：
+- 100 km 点（Coast Range 一带）**低云和中云必须接近 0**，否则光进不来，直接大幅扣分。
+- 220 / 350 km 点若高云由 100% 掉到接近 0，说明云盖西边界在海上 → 存在「进光缝」，加分。
+- 沿海的海雾/层云（低云 100%）**一般不算致命**：日落后光线经过海岸上空时已在 1–2 km 高度，高于 300–600 m 的海雾顶。但要在正文里说明。
+
+**5. 多模式交叉验证**
+对 Davis 点分别用 `models=ecmwf_ifs025`、`gfs_seamless`、`icon_seamless` 查日落窗口的三层云量。三家一致 → 高置信度；分歧大 → 在结论里明确降低置信度。
+
+## 评分标准（0–10）
+
+- **西侧通道（权重最高）**：Davis 及 100 km 上游的低云+中云 ≈ 0 → 大加分；有低云带 → 一票否决式扣分（≤3 分）。
+- **高云量**：30–80% 最理想（有纹理有留白）；100% 是双刃剑，看厚度；<15% → 没有画布，≤4 分。
+- **卷云厚薄**：200–300hPa RH 40–70% → 薄卷云、半透明，会烧起来（加分）；>85% → 厚卷层云，可能变成灰盖板（扣分）；<30% → 基本无云。
+- **空气**：AOD <0.15 且 PM2.5 <20 → 颜色纯净（加分）；AOD >0.3 或有野火烟 → 颜色发浑发褐（扣分）。
+- **中云 400–500hPa**：少量中云能加层次；但配合低云就是遮挡。
+
+## 输出格式
+
+1. 首行给分数和一句话结论，例如：**Davis 8/17 晚霞指数：7.5/10 —— 值得出门**
+2. 日落时间 + 日落方位角
+3. 一个 markdown 小表：因子 / 数值 / 好坏（✅ ⚠️ ❌）
+4. 2–3 句关键判断：最好的一条是什么、最大的风险是什么
+5. **时间窗**：以高云为主时峰值在日落后 8–25 分钟，日落后约 30 分钟迅速熄灭；以中低云为主时峰值在日落前后各 10 分钟。给出具体钟点。
+6. **地点**（低分时可省略）：城西农田路（Russell Blvd 往西出城、Road 31/32）视野最开阔；懒得跑就 West Davis Pond 或 UC Davis Arboretum 西端。满天高云时提醒回头看东边的反霞。
+
+分数低于 4 分就写得更短，一两句话说明今晚不值得出门即可，不用铺开整个表。
+
+## 季节性提醒（重要）
+
+本任务固定 18:30 触发。先检查今天的日落时间：**如果日落已经过了、或距离现在不足 40 分钟**，说明季节已经转换、这个触发时间不再合适。此时不要照常输出预报，而是明确提示用户：「今天日落 HH:MM，18:30 的播报时间已经太晚了，建议把这个每日任务改到 15:30 —— 跟我说一声就行。」然后简短给出明天傍晚的展望即可。
