@@ -42,16 +42,22 @@ https://air-quality-api.open-meteo.com/v1/air-quality?latitude=38.5449&longitude
 - **空气**：AOD <0.15 且 PM2.5 <20 → 颜色纯净（加分）；AOD >0.3 或有野火烟 → 颜色发浑发褐（扣分）。
 - **中云 400–500hPa**：少量中云能加层次；但配合低云就是遮挡。
 
-## 输出格式
+## 输出格式（同时是网站的解析契约 —— 标记写错，站点上就是空卡片）
 
-1. 首行给分数和一句话结论，例如：**Davis 8/17 晚霞指数：7.5/10 —— 值得出门**
-2. 日落时间 + 日落方位角
-3. 一个 markdown 小表：因子 / 数值 / 好坏（✅ ⚠️ ❌）
-4. 2–3 句关键判断：最好的一条是什么、最大的风险是什么
-5. **时间窗**：以高云为主时峰值在日落后 8–25 分钟，日落后约 30 分钟迅速熄灭；以中低云为主时峰值在日落前后各 10 分钟。给出具体钟点。
-6. **地点**（低分时可省略）：城西农田路（Russell Blvd 往西出城、Road 31/32）视野最开阔；懒得跑就 West Davis Pond 或 UC Davis Arboretum 西端。满天高云时提醒回头看东边的反霞。
+网站 `lib/forecasts.ts` 用正则从 md 里抠字段。下面**加粗的标记必须逐字照写**，包括全角冒号：
 
-分数低于 4 分就写得更短，一两句话说明今晚不值得出门即可，不用铺开整个表。
+1. 首行：`**Davis M/D 晚霞指数：N/10 —— 一句话结论**`
+   （`M/D` 不补零，破折号用 `——`，整行必须在一对 `**` 里）
+2. 第二行：`日落 **HH:MM**，方位角 **NNN°**（西偏北）`
+   （时间和度数**都要加粗**，否则回退到 frontmatter）
+3. 一个 markdown 小表，表头必须是 `| 因子 | 数值 | 判断 |`，行内用 ✅ ⚠️ ❌ ➖
+4. `**关键判断**：` 2–3 句 —— 最好的一条是什么、最大的风险是什么
+5. `**时间窗**：` 以高云为主时峰值在日落后 8–25 分钟、约 30 分钟熄灭；以中低云为主时峰值在日落前后各 10 分钟。给具体钟点。
+6. `**建议**：` 城西农田路（Russell Blvd 往西出城、Road 31/32）视野最开阔；懒得跑就 West Davis Pond 或 UC Davis Arboretum 西端。满天高云时提醒回头看东边的反霞。
+
+**低分日（<4 分）可以写得短，但这六项一个都不能省。** 表压到 4–6 行、每段一句话即可，但 `**关键判断**：`／`**时间窗**：`／`**建议**：` 三个标记必须在。历史上省掉表格的那几天（8/19、8/24、8/26、8/29、8/30）在网站上就是空卡片，别再制造新的。
+
+**一天只写一段播报。** 同一晚若重算，把原文替换掉、不要往同一个文件里追加第二个表——解析器会把多个表拼在一起，变成一堆互相矛盾的因子行。
 
 ## 存档并推送到 GitHub（在聊天里输出播报之后再做）
 
@@ -91,6 +97,18 @@ cd "E:/OneDrive - University of California, Davis/PhD/Projects/davis_sunset" && 
 commit message 结尾加一行 `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`。
 
 **如果 push 失败**（网络、凭据、冲突）：不要重试超过一次，也不要动 `--force`。保留本地 commit，在聊天末尾用一行说明失败原因即可——播报本身已经发出去了，推送是附加动作。若是冲突，先 `git pull --rebase` 再推一次。
+
+4. 确认网站重新部署成功。
+
+**不要在本地跑 `npm run build:pages`。** `pages-dist/` 和 `dist/` 都在 `.gitignore` 里，本地构建产物不会被推上去、纯属浪费几分钟。真正的构建在 GitHub Actions（`.github/workflows/deploy-pages.yml`）里跑：push 到 `main` 就触发，`npm ci` → `npm run build:pages` → 部署到 Pages。站点用 `import.meta.glob('../reports/*.md')` 自动扫目录，**新增 md 不需要改任何前端代码或清单**。
+
+push 之后等约 90 秒，用公开 API 查最近一次运行（仓库是 public，不需要凭据）：
+
+```bash
+sleep 90 && curl -s "https://api.github.com/repos/cubhe/davis_sunset/actions/runs?branch=main&per_page=1" | py -c "import json,sys; r=json.load(sys.stdin)['workflow_runs'][0]; print(r['status'], r['conclusion'], r['html_url'])"
+```
+
+`completed success` 就成了，站点是 <https://cubhe.github.io/davis_sunset/>。若还是 `in_progress` 就再等一轮；若 `failure`，把 `html_url` 贴到聊天里说明构建失败，**不要自己去改前端代码修**——播报文件已经推上去了，下次构建会带上。
 
 ## 季节性提醒（重要）
 
