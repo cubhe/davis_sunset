@@ -45,6 +45,8 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        {/* GoatCounter analytics (privacy-friendly, no cookies). Same site as cubhe.github.io. */}
+        <script data-goatcounter="https://cubhe.goatcounter.com/count" async src="//gc.zgo.at/count.js" />
       </body>
     </html>
   );
