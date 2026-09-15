@@ -1,3 +1,5 @@
+import { DEFAULT_LOCATION_ID, LOCATIONS, getLocation, type LocationId, type SunsetLocation } from './locations';
+
 export type Factor = {
   name: string;
   value: string;
@@ -20,7 +22,15 @@ export type Forecast = {
   raw: string;
 };
 
-const markdownFiles = import.meta.glob('../reports/*.md', {
+// import.meta.glob only accepts literals, so one glob per location. `*` does not cross `/`,
+// so the Davis glob never picks up reports/hayward/.
+const davisFiles = import.meta.glob('../reports/*.md', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+}) as Record<string, string>;
+
+const haywardFiles = import.meta.glob('../reports/hayward/*.md', {
   eager: true,
   query: '?raw',
   import: 'default',
@@ -87,7 +97,8 @@ function parseForecast(path: string, raw: string): Forecast | null {
   if (!date) return null;
 
   const meta = frontmatter(raw);
-  const heading = /\*\*Davis\s+([0-9]{1,2}\/[0-9]{1,2})\s+晚霞指数[：:]\s*([0-9]+(?:\.[0-9]+)?)\s*\/\s*10\s*[—-]+\s*([\s\S]*?)\*\*/.exec(raw);
+  // `**Davis 9/14 晚霞指数：3/10 —— …**` / `**South Hayward 9/15 晚霞指数：2/10 —— …**`
+  const heading = /\*\*[A-Za-z][A-Za-z .]*?\s+([0-9]{1,2}\/[0-9]{1,2})\s+晚霞指数[：:]\s*([0-9]+(?:\.[0-9]+)?)\s*\/\s*10\s*[—-]+\s*([\s\S]*?)\*\*/.exec(raw);
   const sun = /日落\s+\*\*([0-9]{1,2}:[0-9]{2})\*\*[，,]\s*(?:日落)?方位角?\s*[~≈]?\s*\*\*?([0-9]{1,3}(?:\.[0-9]+)?)°[^\n]*/.exec(raw);
   const revisedScore = Number(meta.score_revised || meta.score || heading?.[2] || 0);
   const judgment = section(raw, '关键判断') || headingSection(raw, '关键点') || section(raw, '最好的一条');
@@ -111,10 +122,19 @@ function parseForecast(path: string, raw: string): Forecast | null {
   };
 }
 
-export const localForecasts = Object.entries(markdownFiles)
-  .map(([path, raw]) => parseForecast(path, raw))
-  .filter((forecast): forecast is Forecast => forecast !== null)
-  .sort((a, b) => b.date.localeCompare(a.date));
+function collectForecasts(files: Record<string, string>) {
+  return Object.entries(files)
+    .map(([path, raw]) => parseForecast(path, raw))
+    .filter((forecast): forecast is Forecast => forecast !== null)
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+export const localForecastsByLocation: Record<LocationId, Forecast[]> = {
+  davis: collectForecasts(davisFiles),
+  hayward: collectForecasts(haywardFiles),
+};
+
+export const localForecasts = localForecastsByLocation[DEFAULT_LOCATION_ID];
 
 type GithubFile = {
   name: string;
@@ -122,9 +142,10 @@ type GithubFile = {
   type: string;
 };
 
-export async function getForecasts() {
+export async function getForecasts(location: SunsetLocation = getLocation(DEFAULT_LOCATION_ID)) {
+  const fallback = localForecastsByLocation[location.id];
   try {
-    const listing = await fetch('https://api.github.com/repos/cubhe/davis_sunset/contents/reports?ref=main', {
+    const listing = await fetch(`https://api.github.com/repos/cubhe/davis_sunset/contents/${location.reportDir}?ref=main`, {
       headers: {
         Accept: 'application/vnd.github+json',
         'User-Agent': 'davis-sunset-site',
@@ -148,10 +169,17 @@ export async function getForecasts() {
     const remoteForecasts = reports
       .filter((forecast): forecast is Forecast => forecast !== null)
       .sort((a, b) => b.date.localeCompare(a.date));
-    return remoteForecasts.length ? remoteForecasts : localForecasts;
+    return remoteForecasts.length ? remoteForecasts : fallback;
   } catch {
-    return localForecasts;
+    return fallback;
   }
+}
+
+export async function getForecastsByLocation() {
+  const entries = await Promise.all(
+    LOCATIONS.map(async (location) => [location.id, await getForecasts(location)] as const),
+  );
+  return Object.fromEntries(entries) as Record<LocationId, Forecast[]>;
 }
 
 export function scoreMood(score: number) {

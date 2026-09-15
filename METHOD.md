@@ -118,6 +118,18 @@ sleep 90 && curl -s "https://api.github.com/repos/cubhe/davis_sunset/actions/run
 
 `completed success` 就成了，站点是 <https://cubhe.github.io/davis_sunset/>。若还是 `in_progress` 就再等一轮；若 `failure`，把 `html_url` 贴到聊天里说明构建失败，**不要自己去改前端代码修**——播报文件已经推上去了，下次构建会带上。
 
-## 季节性提醒（重要）
+## 触发时间跟着日落走
 
-本任务固定 18:30 触发。先检查今天的日落时间：**如果日落已经过了、或距离现在不足 40 分钟**，说明季节已经转换、这个触发时间不再合适。此时不要照常输出预报，而是明确提示用户：「今天日落 HH:MM，18:30 的播报时间已经太晚了，建议把这个每日任务改到 15:30 —— 跟我说一声就行。」然后简短给出明天傍晚的展望即可。
+晚间任务不再固定 18:30：每次运行都会取第二天的日落时间，把自己的 cron 改到「日落前约 1 小时」（再减去调度器的几分钟抖动）。漏跑一天也无妨，日落每天只挪 1–2 分钟。
+
+## South Hayward 的差异
+
+同一套方法，坐标 **37.6344N, -122.0572W**（South Hayward BART 一带），报告写在 `reports/hayward/YYYY-MM-DD.md`，标题行写 `**South Hayward M/D 晚霞指数：N/10 —— …**`。和 Davis 不同的地方：
+
+- **上游多一个 35 km 点**：沿日落方位取 35 / 100 / 220 / 350 km。35 km 落在旧金山半岛山脊（San Mateo / Skyline 一带），100 km 已在 Farallon 群岛以西的海面上。
+- **本地海洋层是一票否决项**：Hayward 贴着海湾，傍晚的 marine layer 经常直接灌到头顶——观测者在层云底下时，西边什么都看不到。Hayward 点低云 ≥50% 且 RH1000/925 ≥90%、露点差 <2°C → ≤2 分。GFS 的低云口径陷阱同样适用，先看低层湿度剖面。
+- **35 km 半岛点有低云** → 西地平线被挡：中低云为主的晚上明显扣分；高云为主的晚上只挡最后几分钟的地平线颜色，小幅扣分。
+- **100 km 以外的海雾不致命**，理由同 Davis：光从雾顶上方过去。
+- **湿霭**：海湾边能见度 <20 km 时，即使 AOD / PM2.5 达标也按 ⚠️ 处理，颜色偏灰。
+- **山脊提前日落**：太阳会比理论日落早几分钟落到半岛山脊后面，时间窗要往前挪。
+- **观测点**：Hayward Regional Shoreline（Interpretive Center 那段堤岸，平视海湾、有水面倒影）；Garin Regional Park（South Hayward 东边的山上，俯瞰整个海湾，适合高云日）；Eden Landing Ecological Reserve（更南、更空旷）。满天高云时回头看东边山坡的反霞。

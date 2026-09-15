@@ -53,9 +53,21 @@ button, summary { font: inherit; }
 .site-header { position: absolute; z-index: 20; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; max-width: 1240px; margin: auto; padding: 28px 36px; color: white; }
 .brand { display: flex; align-items: center; gap: 11px; font-weight: 650; letter-spacing: .03em; }
 .brand-mark { width: 20px; height: 20px; border: 1px solid rgba(255,255,255,.76); border-radius: 50%; box-shadow: inset -6px -3px 0 rgba(255,255,255,.9); }
+.header-actions { display: flex; align-items: center; gap: 28px; }
 nav { display: flex; align-items: center; gap: 28px; font-size: 14px; color: rgba(255,255,255,.76); }
 nav a { transition: color .2s ease; }
 nav a:hover { color: white; }
+.location-switch { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border: 1px solid rgba(255,255,255,.22); border-radius: 99px; background: rgba(25,23,34,.28); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.location-switch button { padding: 7px 13px; border: 0; border-radius: 99px; background: transparent; color: rgba(255,255,255,.72); font-size: 13px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; cursor: pointer; transition: background .2s ease, color .2s ease; }
+.location-switch button:hover { color: white; }
+.location-switch button[aria-pressed="true"] { background: rgba(255,250,241,.94); color: var(--night); box-shadow: 0 4px 14px rgba(6,6,15,.25); }
+.location-switch button:focus-visible { outline: 2px solid var(--sun-bright); outline-offset: 2px; }
+.empty-state.on-sky { position: relative; z-index: 2; color: white; }
+.empty-state.on-sky p { color: rgba(255,255,255,.7); }
+@media (max-width: 520px) {
+  .brand-name { display: none; }
+  .location-switch button { padding: 7px 11px; font-size: 12px; }
+}
 
 /* Act I geometry: the sun sets over --sunset-run, then the stage stays pinned for one more
    stage height while the first sheet rises over it (see .content-shell's negative margin). */

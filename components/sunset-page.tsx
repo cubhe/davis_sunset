@@ -1,5 +1,6 @@
 'use client';
 
+import { Fragment, useEffect, useState } from 'react';
 import {
   ArrowDown,
   ArrowUpRight,
@@ -18,6 +19,16 @@ import { ScrollSunset } from '@/components/scroll-sunset';
 import { StarField } from '@/components/star-field';
 import type { Forecast } from '@/lib/forecasts';
 import { scoreMood } from '@/lib/forecasts';
+import {
+  DEFAULT_LOCATION_ID,
+  LOCATIONS,
+  getLocation,
+  isLocationId,
+  type LocationId,
+  type SunsetLocation,
+} from '@/lib/locations';
+
+const LOCATION_STORAGE_KEY = 'sunset-location';
 
 function statusClass(rating: string) {
   if (rating.includes('✅')) return 'good';
@@ -36,25 +47,70 @@ function Emphasis({ text }: { text: string }) {
   );
 }
 
-export function SunsetPage({ forecasts }: { forecasts: Forecast[] }) {
-  const forecast = forecasts[0];
-  if (!forecast) {
-    return (
-      <main className="empty-state">
-        <CloudSun size={34} />
-        <h1>今天的晚霞判断还没来</h1>
-        <p>在 reports 目录加入一份按日期命名的 Markdown 后，这里会自动出现。</p>
-      </main>
-    );
+/** `?loc=` wins, then the last choice on this device, then Davis. */
+function initialLocationId(): LocationId {
+  if (typeof window === 'undefined') return DEFAULT_LOCATION_ID;
+  const fromUrl = new URLSearchParams(window.location.search).get('loc');
+  if (isLocationId(fromUrl)) return fromUrl;
+  try {
+    const saved = window.localStorage.getItem(LOCATION_STORAGE_KEY);
+    if (isLocationId(saved)) return saved;
+  } catch {
+    // Storage can be blocked (private mode); the default is fine.
   }
+  return DEFAULT_LOCATION_ID;
+}
 
-  const [year, month, day] = forecast.date.split('-');
-  const weekday = forecast.displayDate.replace(/^\d+月\d+日/, '').trim();
+/** About a quarter hour before sunset, rounded down to 5 minutes: `19:16` -> `19:00`. */
+function lookoutTime(sunset: string) {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(sunset);
+  if (!match) return '日落前';
+  const minutes = Math.floor((Number(match[1]) * 60 + Number(match[2]) - 15) / 5) * 5;
+  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
+}
+
+function mapUrl(query: string) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query).replaceAll('%20', '+')}`;
+}
+
+function LocationSwitch({ current, onSelect }: { current: LocationId; onSelect: (id: LocationId) => void }) {
+  return (
+    <div className="location-switch" role="group" aria-label="切换地点">
+      {LOCATIONS.map((item) => (
+        <button key={item.id} type="button" aria-pressed={item.id === current} onClick={() => onSelect(item.id)}>
+          {item.name}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function SunsetPage({ forecastsByLocation }: { forecastsByLocation: Record<LocationId, Forecast[]> }) {
+  const [locationId, setLocationId] = useState<LocationId>(initialLocationId);
+  const location: SunsetLocation = getLocation(locationId);
+  const forecasts = forecastsByLocation[location.id] ?? [];
+  const forecast = forecasts[0];
   const assetBase = import.meta.env.BASE_URL || '/';
+
+  useEffect(() => {
+    document.title = `${location.name} 晚霞｜今晚值得追吗？`;
+  }, [location.name]);
+
+  const selectLocation = (id: LocationId) => {
+    setLocationId(id);
+    const url = new URL(window.location.href);
+    if (id === DEFAULT_LOCATION_ID) url.searchParams.delete('loc');
+    else url.searchParams.set('loc', id);
+    window.history.replaceState(null, '', url);
+    try {
+      window.localStorage.setItem(LOCATION_STORAGE_KEY, id);
+    } catch {
+      // Not remembering the choice is acceptable.
+    }
+  };
 
   return (
     <main>
-      <ScrollSunset />
       <div className="sky-scene" aria-hidden="true">
         <div className="sky-art" style={{ backgroundImage: `url(${assetBase}davis-sunset-atmosphere.png)` }} />
         <div className="daylight-wash" />
@@ -66,25 +122,55 @@ export function SunsetPage({ forecasts }: { forecasts: Forecast[] }) {
         <div className="horizon-haze" />
       </div>
 
+      {/* Outside the keyed block so the pressed button keeps focus across a switch. */}
       <header className="site-header">
-        <a className="brand" href="#today" aria-label="Davis 晚霞首页">
+        <a className="brand" href="#today" aria-label={`${location.name} 晚霞首页`}>
           <span className="brand-mark" aria-hidden="true" />
-          <span>Davis 晚霞</span>
+          <span className="brand-name">{location.name} 晚霞</span>
         </a>
-        <nav aria-label="主要导航">
-          <a href="#today">今晚</a>
-          <a href="#details">判断依据</a>
-          <a href="#archive">往日记录</a>
-        </nav>
+        <div className="header-actions">
+          {forecast && (
+            <nav aria-label="主要导航">
+              <a href="#today">今晚</a>
+              <a href="#details">判断依据</a>
+              <a href="#archive">往日记录</a>
+            </nav>
+          )}
+          <LocationSwitch current={location.id} onSelect={selectLocation} />
+        </div>
       </header>
 
+      {/* Keyed by location: ScrollSunset wires its scroll + reveal observers once on mount, so the
+          page body has to remount for the new [data-reveal] nodes to be picked up. */}
+      <Fragment key={location.id}>
+        <ScrollSunset />
+        {forecast ? (
+          <ForecastBody location={location} forecast={forecast} forecasts={forecasts} />
+        ) : (
+          <section className="empty-state on-sky">
+            <CloudSun size={34} />
+            <h1>{location.name} 的晚霞判断还没来</h1>
+            <p>在 {location.reportDir} 目录加入一份按日期命名的 Markdown 后，这里会自动出现。</p>
+          </section>
+        )}
+      </Fragment>
+    </main>
+  );
+}
+
+function ForecastBody({ location, forecast, forecasts }: { location: SunsetLocation; forecast: Forecast; forecasts: Forecast[] }) {
+  const [year, month, day] = forecast.date.split('-');
+  const weekday = forecast.displayDate.replace(/^\d+月\d+日/, '').trim();
+
+  return (
+    <>
       <section className="hero" id="today" data-sunset-hero>
         <div className="hero-stage" data-sunset-stage>
           <div className="hero-shade" />
           <div className="hero-content">
             <div className="eyebrow">
               <MapPin size={14} aria-hidden="true" />
-              Davis, California · DAILY SUNSET INDEX
+              {location.region} · DAILY SUNSET INDEX
             </div>
 
             <div className="hero-grid">
@@ -131,7 +217,7 @@ export function SunsetPage({ forecasts }: { forecasts: Forecast[] }) {
           <div className="decision-strip" data-reveal>
             <article>
               <span className="icon-box"><Eye size={20} /></span>
-              <div><span>出门前</span><strong>19:00 推窗看西边</strong></div>
+              <div><span>出门前</span><strong>{lookoutTime(forecast.sunset)} 推窗看西边</strong></div>
             </article>
             <article>
               <span className="icon-box"><Clock3 size={20} /></span>
@@ -192,8 +278,9 @@ export function SunsetPage({ forecasts }: { forecasts: Forecast[] }) {
               <h3>今晚去哪里</h3>
               <p><Emphasis text={forecast.advice} /></p>
               <div className="map-links">
-                <a href="https://www.google.com/maps/search/?api=1&query=County+Road+31+Davis+CA" target="_blank" rel="noreferrer">城西农田路 <ArrowUpRight size={14} /></a>
-                <a href="https://www.google.com/maps/search/?api=1&query=West+Davis+Pond+Davis+CA" target="_blank" rel="noreferrer">West Davis Pond <ArrowUpRight size={14} /></a>
+                {location.mapLinks.map((link) => (
+                  <a key={link.label} href={mapUrl(link.query)} target="_blank" rel="noreferrer">{link.label} <ArrowUpRight size={14} /></a>
+                ))}
               </div>
             </article>
           </div>
@@ -217,7 +304,7 @@ export function SunsetPage({ forecasts }: { forecasts: Forecast[] }) {
                   <p><b>关键判断</b>{item.judgment || '详见当天完整播报。'}</p>
                   <p><b>时间窗</b>{item.window || '详见当天完整播报。'}</p>
                   <p><b>建议</b>{item.advice || '详见当天完整播报。'}</p>
-                  <a className="source-link" href={`https://github.com/cubhe/davis_sunset/blob/main/reports/${item.date}.md`} target="_blank" rel="noreferrer">查看原始播报 <ArrowUpRight size={13} /></a>
+                  <a className="source-link" href={`https://github.com/cubhe/davis_sunset/blob/main/${location.reportDir}/${item.date}.md`} target="_blank" rel="noreferrer">查看原始播报 <ArrowUpRight size={13} /></a>
                 </div>
               </details>
             ))}
@@ -225,13 +312,13 @@ export function SunsetPage({ forecasts }: { forecasts: Forecast[] }) {
         </section>
 
         <footer>
-          <div><span className="footer-mark" aria-hidden="true" /> <span>Davis 晚霞 · 每日下午更新</span></div>
+          <div><span className="footer-mark" aria-hidden="true" /> <span>{location.name} 晚霞 · 每日下午更新</span></div>
           <div className="footer-links">
             <a href="https://github.com/cubhe/davis_sunset" target="_blank" rel="noreferrer"><Code2 size={14} /> 数据与源码</a>
             <span>背景插画：为 Davis 晚霞生成</span>
           </div>
         </footer>
       </div>
-    </main>
+    </>
   );
 }

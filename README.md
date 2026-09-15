@@ -1,8 +1,8 @@
 # Davis 晚霞指数 · Davis Sunset Index
 
-每天傍晚为 **Davis, CA (38.5449°N, 121.7405°W)** 生成一份晚霞预报：0–10 分的指数、日落时间与方位角、因子拆解表、峰值时间窗和观测点建议。
+每天为 **Davis, CA (38.5449°N, 121.7405°W)** 和 **South Hayward, CA (37.6344°N, 122.0572°W)** 各生成一份晚霞预报：0–10 分的指数、日落时间与方位角、因子拆解表、峰值时间窗和观测点建议。网站右上角的按钮可以在两个地点之间切换。
 
-由 Claude Code 的定时任务 `davis-sunset-index` 每天 18:30 (PT) 自动运行并推送到本仓库。方法说明见 [METHOD.md](METHOD.md)。
+由 Claude Code 的定时任务每天跑两次并推送到本仓库：`davis-sunset-index-am` 11:00 (PT) 出早报，`davis-sunset-index` 在**日落前约 1 小时**出确认版（每次运行都会把第二天的触发时间挪到新的日落前 1 小时）。Davis 播报在 `reports/`，South Hayward 在 `reports/hayward/`。方法说明见 [METHOD.md](METHOD.md)。
 
 ## 方法一句话版
 
@@ -10,9 +10,17 @@
 
 核心洞察是「进光通道」：晚霞要好看，光必须能贴着地平线从西边钻进来打亮头顶的云底。所以西侧上游 100 km（Coast Range 一带）的低云和中云必须接近 0，否则天上云再漂亮也点不着。沿海的海雾（低云 100%）通常不致命——日落时光线经过海岸上空已在 1–2 km 高度，高于 300–600 m 的雾顶。
 
+South Hayward 用同一套方法，另加一个 35 km 的半岛山脊点，并把本地海洋层当一票否决项——站在层云底下时西边什么都看不到。差异见 [METHOD.md](METHOD.md#south-hayward-的差异)。
+
 数据源全部是 [open-meteo](https://open-meteo.com) 的免费 API（forecast + air-quality），无需 key。
 
-## 播报存档
+## 播报存档 · South Hayward
+
+| 日期 | 指数 | 日落 | 一句话 |
+|---|---|---|---|
+| [2026-09-15](reports/hayward/2026-09-15.md) | 2 | 19:15 | 首份播报（提前约 20 小时，`confidence: low`）：高空干透（RH300 10–16%），三家在 Hayward 与上游 220 km 内高云全 0%，没有画布；ICON 报半岛与海湾层云 30–78%、ECMWF 全空，露点差 3–4°C 的浅海洋层更像湿霭 |
+
+## 播报存档 · Davis
 
 | 日期 | 指数 | 日落 | 一句话 |
 |---|---|---|---|
